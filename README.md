@@ -1,91 +1,139 @@
-# TrionChain – Protocol Specification
+# 🧬 TrionChain Protocol  
+### A Physics-Based, FEM-Driven Layer-1 Blockchain  
+*(TrionChain Foundation – 2025)*
 
-This repository contains the **core protocol specification** for the TrionChain FEM-based blockchain – a geographically-aware, infrastructure-oriented L1 whose execution and data layout are inspired by the **Finite Element Method (FEM)**.
+TrionChain is the world’s first blockchain built on **Finite Element Method (FEM) principles**, enabling a computational mesh architecture where each region of the network — called a **TrionCell** — operates as an independent domain that synchronizes with its neighbors through boundary conditions.
 
-The goal of this repo is to serve as the **single source of truth** for:
-- Architecture & network topology
-- Consensus and validator roles
-- FEM-style computation model
-- Data model and transaction lifecycle
-- RWA & infrastructure integration layer
+This architecture provides deterministic parallelism, massive scalability, and the first native framework for **Real-World Asset (RWA) tokenization mapped to physical geography**.
 
 ---
 
-## Repository Map
+## 🚀 Core Concepts
 
-- [`docs/architecture.md`](docs/architecture.md)  
-  High-level architecture, layers and mesh topology.
+### **🔹 1. FEM-Inspired Architecture**
+The global blockchain state is partitioned into geometric domains (TrionCells), each running:
 
-- [`docs/consensus.md`](docs/consensus.md)  
-  Consensus model, finality, and regional / cell coordination.
+- Local FEM computation  
+- Local consensus  
+- Boundary synchronization  
+- Mesh-wide assembly  
 
-- [`docs/fem-computation.md`](docs/fem-computation.md)  
-  How TrionChain maps FEM concepts (mesh, elements, degrees of freedom) to blockchain state and computation.
-
-- [`docs/node-roles.md`](docs/node-roles.md)  
-  Validator classes, cell coordinators, observers, bridges, and oracles.
-
-- [`docs/rwa-layer.md`](docs/rwa-layer.md)  
-  Tokenization layer for energy, logistics, and real-world infrastructure.
-
-- [`docs/trion-objects.md`](docs/trion-objects.md)  
-  Core on-chain objects and token types (TON, infrastructure tokens, cell assets).
-
-- [`specs/protocol-overview.md`](specs/protocol-overview.md)  
-  State machine, blocks, transactions, and high-level safety assumptions.
-
-- [`specs/data-model.md`](specs/data-model.md)  
-  Block header, cell metadata, and storage layout.
-
-- [`specs/transaction-lifecycle.md`](specs/transaction-lifecycle.md)  
-  From client request → routing to a cell → inclusion → finality.
-
-- [`research/reading-list.md`](research/reading-list.md)  
-  Background material (FEM, geospatial systems, BFT consensus, RWA).
-
-For the **public conceptual description**, see the separate repository:
-
-> 🔗 `TrionChainFoundation/public-whitepaper`  
-> “TrionChain – Public Whitepaper (2025)”
+This transforms blockchain from a financial ledger into a **computational physics engine**.
 
 ---
 
-## High-Level Vision
+### **🔹 2. Mesh-Based Consensus (FECM)**  
+TrionChain introduces the **Finite-Element Consensus Mechanism**, where:
 
-TrionChain aims to:
+- Each cell reaches *local consensus*  
+- Boundaries are synchronized using FEM continuity rules  
+- A global convergence check finalizes blocks  
 
-- Use **FEM-like meshes** to partition the world into infrastructure-aware “cells”
-- Offer **deterministic, geographically-aware execution** for energy, logistics, and national-scale systems
-- Provide a clean separation between:
-  - **Protocol layer** (this repository)
-  - **Public narrative / whitepaper** (`public-whitepaper`)
-  - **Implementation repos** (nodes, SDKs, tooling – to be created)
+A block is valid only if the entire mesh satisfies:
 
----
+f_local += f_RWA_external
 
-## Roadmap (Specification Side)
 
-1. **🔹 v0.1 – Conceptual Spec (current)**
-   - Architecture, consensus, FEM model, and data model drafts
-2. **🔹 v0.2 – Formalization**
-   - Pseudocode, message flows, and safety / liveness assumptions
-3. **🔹 v0.3 – Implementation-Ready Spec**
-   - Node roles, networking, storage APIs, and testing guidelines
+This enables deterministic, verifiable real-world tokenization.
 
 ---
 
-## Contributing
+## 📁 Repository Structure
 
-At this stage, the spec is **exploratory and evolving**.
+trionchain-protocol/
+│
+├── docs/
+│ ├── architecture/
+│ │ └── architecture.md
+│ ├── consensus/
+│ │ └── consensus.md
+│ ├── fem-computation/
+│ │ └── fem-computation.md
+│ ├── specifications/
+│ │ ├── node-roles.md
+│ │ ├── rwa-layer.md
+│ │ └── trion-objects.md
+│
+└── README.md
 
-- Issues: protocol questions, modeling ideas, research links  
-- Pull Requests: corrections, clarifications, improved diagrams or examples
 
-In the future, TrionChainFoundation will define a formal **governance and RFC process** for major protocol changes.
+Each module contains the full formal specification of the TrionChain Protocol.
 
 ---
 
-## License
+## 📚 Documents Summary
 
-Unless otherwise noted, the contents of this repository are released under the **MIT License**.
+### 🔹 **Architecture**
+Defines the FEM-inspired mesh topology, TrionCells, boundary structure, and execution layers.
 
+### 🔹 **Consensus**
+Details the FECM consensus system, combining local validation, boundary agreement, and mesh-wide assembly.
+
+### 🔹 **FEM Computation**
+Explains the mathematical engine behind state updates, convergence, time-stepping, and global mesh validation.
+
+### 🔹 **Node Roles**
+Specifies CVN, BN, MAN, ON, RIN, and Light Clients.
+
+### 🔹 **RWA Layer**
+Describes how physical assets, geospatial data, and infrastructure interact with the mesh.
+
+### 🔹 **Trion Objects**
+Formal definitions of blockchain state objects: TrionCells, state vectors, boundary vectors, FEM hashes, blocks, etc.
+
+---
+
+## 🧭 Roadmap (Current Phase)
+
+### ✅ Phase 1: Conceptual Architecture  
+_Completed 2025_
+
+### 🔄 Phase 2: Protocol Documentation  
+_In progress – this repository_
+
+### ⏳ Phase 3: Specification to Implementation  
+To begin soon, including:
+
+- Mesh simulation environment  
+- FEM computation engine prototype  
+- TrionCell validator testnet  
+- RWA integration sandbox  
+
+### ⏳ Phase 4: Testnet Launch  
+### ⏳ Phase 5: Mainnet Release  
+
+---
+
+## 🏛️ TrionChain Foundation  
+This repository is maintained by the **TrionChain Foundation**, responsible for:
+
+- Protocol research and development  
+- Open-source governance  
+- Security and audits  
+- RWA partnerships  
+- Ecosystem expansion  
+
+---
+
+## 🌐 Website  
+https://trionchain.org
+
+---
+
+## 📄 Legal & Verification  
+The complete project specification has been cryptographically timestamped on the **Bitcoin blockchain** for intellectual property proof and immutable authorship certification.
+
+---
+
+## 🤝 Contributions  
+Community contributions will be enabled after Phase 2.
+
+---
+
+## ⚙️ License  
+To be defined under the **TrionChain Open License (TCOL)**.
+
+---
+
+# 🌍 TrionChain  
+**A new computational layer for the physical economy.**
