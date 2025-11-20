@@ -8,7 +8,7 @@ The TrionChain architecture is built on a finite-element–inspired blockchain m
 ## 1. Architecture Overview
 
 TrionChain organizes the blockchain into geometric partitions, where each node validates only a portion of the global state.  
-Each partition—called a **TrionCell**—acts as a self-contained computational domain with boundary conditions linking it to adjacent cells.
+Each partition called a **TrionCell** acts as a self-contained computational domain with boundary conditions linking it to adjacent cells.
 
 This architecture enables:
 
@@ -133,5 +133,4 @@ The TrionChain architecture brings the mathematical rigor of computational physi
 - Predictable global consensus  
 - Native support for RWA tokenization  
 
-TrionChain is not just a blockchain—  
-**it is a computational mesh for the decentralized world.**
+TrionChain is not just a blockchain, **it is a computational mesh for the decentralized world.**
