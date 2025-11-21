@@ -37,22 +37,31 @@ f_local += f_RWA_external
 This enables deterministic, verifiable real-world tokenization.
 
 ---
+## 🔷 Institutional Readiness: ISO 20022 Alignment
 
+TrionChain follows a message-oriented architecture and structured data model that align naturally with **ISO 20022**, the global standard for financial messaging adopted by banks, payment networks, custodians, and institutional digital-asset infrastructures.
+
+This compatibility enables TrionChain to interoperate with traditional financial systems, support compliant real-world asset tokenization, and integrate with institutional platforms such as SWIFT, CBDC pilots, and tokenized fund ecosystems (BlackRock, Calastone, Franklin Templeton).
+
+By aligning with ISO 20022 principles, TrionChain positions itself as a modern financial infrastructure capable of bridging blockchain technology with global settlement standards.
+
+---
 ## 📁 Repository Structure
 
 trionchain-protocol/
 │
 ├── docs/
-│ ├── architecture/
-│ │ └── architecture.md
-│ ├── consensus/
-│ │ └── consensus.md
-│ ├── fem-computation/
-│ │ └── fem-computation.md
-│ ├── specifications/
-│ │ ├── node-roles.md
-│ │ ├── rwa-layer.md
-│ │ └── trion-objects.md
+│   ├── architecture/
+│   │   ├── architecture.md
+│   │   └── ISO20022-Interoperability.md
+│   ├── consensus/
+│   │   └── consensus.md
+│   ├── fem-computation/
+│   │   └── fem-computation.md
+│   ├── specifications/
+│   │   ├── node-roles.md
+│   │   ├── rwa-layer.md
+│   │   └── trion-objects.md
 │
 └── README.md
 
