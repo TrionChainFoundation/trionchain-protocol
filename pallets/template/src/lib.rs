@@ -20,6 +20,7 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	/// Configuración del módulo
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -27,17 +28,18 @@ pub mod pallet {
 	}
 
 	// --- 1. ESTRUCTURAS DE DATOS ---
-	// Añadimos Copy y Eq para máxima compatibilidad
+	// Incluye MaxEncodedLen, Copy, Eq
 	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	pub struct TrionCellData {
-		pub stress: u32,
-		pub generation: u32,
-		pub demand: u32,
-		pub soc: u32,
-		pub price: u32,
+		pub stress: u32,      
+		pub generation: u32,  
+		pub demand: u32,      
+		pub soc: u32,         
+		pub price: u32,       
 	}
 
-	// --- 2. ALMACENAMIENTO ---
+	// --- 2. ALMACENAMIENTO (STORAGE) ---
+	
 	#[pallet::storage]
 	#[pallet::getter(fn get_cell_state)]
 	pub type CellState<T: Config> = StorageMap<_, Blake2_128Concat, u32, TrionCellData, OptionQuery>;
@@ -46,17 +48,17 @@ pub mod pallet {
 	#[pallet::getter(fn get_authorized_sensor)]
 	pub type TrustedSensors<T: Config> = StorageMap<_, Blake2_128Concat, u32, T::AccountId, OptionQuery>;
 
-	// --- 3. EVENTOS (EL ARREGLO ESTÁ AQUÍ) ---
+	// --- 3. EVENTOS ---
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Datos reportados (Aplanados para evitar errores de memoria)
-		/// En lugar de pasar 'TrionCellData', pasamos los valores sueltos.
+		/// Datos reportados (Incluye soc/fuel ahora)
 		CellUpdateReceived { 
 			cell_id: u32, 
 			who: T::AccountId, 
 			stress: u32,
-			generation: u32 
+			generation: u32,
+			soc: u32 
 		},
 		SensorAuthorized { cell_id: u32, operator: T::AccountId },
 	}
@@ -64,12 +66,12 @@ pub mod pallet {
 	// --- 4. ERRORES ---
 	#[pallet::error]
 	pub enum Error<T> {
-		InvalidPhysicalValue,
-		Unauthorized,
-		SensorNotRegistered,
+		InvalidPhysicalValue, 
+		Unauthorized,         
+		SensorNotRegistered,  
 	}
 
-	// --- 5. FUNCIONES ---
+	// --- 5. FUNCIONES (TRANSACCIONES) ---
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		
@@ -102,16 +104,16 @@ pub mod pallet {
 				return Err(Error::<T>::InvalidPhysicalValue.into());
 			}
 
-			// Guardamos la estructura COMPLETA en la base de datos (esto sí funciona)
 			let new_data = TrionCellData { stress, generation, demand, soc, price };
 			<CellState<T>>::insert(cell_id, &new_data);
 
-			// Emitimos solo los datos clave en el evento (para evitar el error)
+			// Evento actualizado con SOC
 			Self::deposit_event(Event::CellUpdateReceived { 
 				cell_id, 
 				who, 
-				stress,      // Pasamos el valor directo
-				generation   // Pasamos el valor directo
+				stress, 
+				generation,
+				soc 
 			});
 
 			Ok(())
