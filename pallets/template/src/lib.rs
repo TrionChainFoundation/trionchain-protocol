@@ -28,14 +28,14 @@ pub mod pallet {
 	}
 
 	// --- 1. ESTRUCTURAS DE DATOS ---
-	// Incluye MaxEncodedLen, Copy, Eq
+	// Incluye MaxEncodedLen y todos los campos necesarios
 	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	pub struct TrionCellData {
-		pub stress: u32,      
-		pub generation: u32,  
-		pub demand: u32,      
-		pub soc: u32,         
-		pub price: u32,       
+		pub stress: u32,
+		pub generation: u32,
+		pub demand: u32,
+		pub soc: u32,
+		pub price: u32, // Usado para CO2 Acumulado
 	}
 
 	// --- 2. ALMACENAMIENTO (STORAGE) ---
@@ -49,16 +49,18 @@ pub mod pallet {
 	pub type TrustedSensors<T: Config> = StorageMap<_, Blake2_128Concat, u32, T::AccountId, OptionQuery>;
 
 	// --- 3. EVENTOS ---
+	// IMPORTANTE: Aquí es donde la web "escucha" los datos
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Datos reportados (Incluye soc/fuel ahora)
 		CellUpdateReceived { 
 			cell_id: u32, 
 			who: T::AccountId, 
 			stress: u32,
 			generation: u32,
-			soc: u32 
+			demand: u32,
+			soc: u32,
+			price: u32  // <--- ¡ESTE ES EL CAMPO CLAVE PARA QUE SE VEA EL CO2!
 		},
 		SensorAuthorized { cell_id: u32, operator: T::AccountId },
 	}
@@ -66,12 +68,12 @@ pub mod pallet {
 	// --- 4. ERRORES ---
 	#[pallet::error]
 	pub enum Error<T> {
-		InvalidPhysicalValue, 
-		Unauthorized,         
-		SensorNotRegistered,  
+		InvalidPhysicalValue,
+		Unauthorized,
+		SensorNotRegistered,
 	}
 
-	// --- 5. FUNCIONES (TRANSACCIONES) ---
+	// --- 5. FUNCIONES ---
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		
@@ -107,13 +109,15 @@ pub mod pallet {
 			let new_data = TrionCellData { stress, generation, demand, soc, price };
 			<CellState<T>>::insert(cell_id, &new_data);
 
-			// Evento actualizado con SOC
+			// Emitir evento con TODOS los datos (incluyendo price)
 			Self::deposit_event(Event::CellUpdateReceived { 
 				cell_id, 
 				who, 
 				stress, 
 				generation,
-				soc 
+				demand,
+				soc,
+				price 
 			});
 
 			Ok(())
