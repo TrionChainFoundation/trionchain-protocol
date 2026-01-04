@@ -34,7 +34,7 @@ function App() {
     const connect = async () => {
       try {
         setStatus("🟡 CONNECTING...");
-        const provider = new WsProvider('ws://127.0.0.1:9944');
+        const provider = new WsProvider('ws://174.138.65.175:9944');
         const newApi = await ApiPromise.create({ provider });
         setStatus("🟢 LIVE TRACKING");
 
