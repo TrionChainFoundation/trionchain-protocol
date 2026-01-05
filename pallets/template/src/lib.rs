@@ -6,10 +6,6 @@ pub use pallet::*;
 mod mock;
 #[cfg(test)]
 mod tests;
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-pub mod weights;
-pub use weights::*;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -24,22 +20,20 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		type WeightInfo: WeightInfo;
+		// HEMOS QUITADO 'type WeightInfo' PARA EVITAR ERRORES
 	}
 
-	// --- 1. ESTRUCTURAS DE DATOS ---
-	// Incluye MaxEncodedLen y todos los campos necesarios
+	// --- ESTRUCTURAS DE DATOS ---
 	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	pub struct TrionCellData {
 		pub stress: u32,
 		pub generation: u32,
 		pub demand: u32,
 		pub soc: u32,
-		pub price: u32, // Usado para CO2 Acumulado
+		pub price: u32,
 	}
 
-	// --- 2. ALMACENAMIENTO (STORAGE) ---
-	
+	// --- ALMACENAMIENTO ---
 	#[pallet::storage]
 	#[pallet::getter(fn get_cell_state)]
 	pub type CellState<T: Config> = StorageMap<_, Blake2_128Concat, u32, TrionCellData, OptionQuery>;
@@ -48,8 +42,7 @@ pub mod pallet {
 	#[pallet::getter(fn get_authorized_sensor)]
 	pub type TrustedSensors<T: Config> = StorageMap<_, Blake2_128Concat, u32, T::AccountId, OptionQuery>;
 
-	// --- 3. EVENTOS ---
-	// IMPORTANTE: Aquí es donde la web "escucha" los datos
+	// --- EVENTOS ---
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -60,12 +53,12 @@ pub mod pallet {
 			generation: u32,
 			demand: u32,
 			soc: u32,
-			price: u32  // <--- ¡ESTE ES EL CAMPO CLAVE PARA QUE SE VEA EL CO2!
+			price: u32
 		},
 		SensorAuthorized { cell_id: u32, operator: T::AccountId },
 	}
 
-	// --- 4. ERRORES ---
+	// --- ERRORES ---
 	#[pallet::error]
 	pub enum Error<T> {
 		InvalidPhysicalValue,
@@ -73,12 +66,12 @@ pub mod pallet {
 		SensorNotRegistered,
 	}
 
-	// --- 5. FUNCIONES ---
+	// --- FUNCIONES ---
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(10_000)] // Peso fijo
 		pub fn register_sensor(origin: OriginFor<T>, cell_id: u32, sensor_account: T::AccountId) -> DispatchResult {
 			let _who = ensure_signed(origin)?; 
 			<TrustedSensors<T>>::insert(cell_id, &sensor_account);
@@ -87,7 +80,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(10_000)] // Peso fijo
 		pub fn report_state(
 			origin: OriginFor<T>, 
 			cell_id: u32, 
@@ -109,7 +102,6 @@ pub mod pallet {
 			let new_data = TrionCellData { stress, generation, demand, soc, price };
 			<CellState<T>>::insert(cell_id, &new_data);
 
-			// Emitir evento con TODOS los datos (incluyendo price)
 			Self::deposit_event(Event::CellUpdateReceived { 
 				cell_id, 
 				who, 

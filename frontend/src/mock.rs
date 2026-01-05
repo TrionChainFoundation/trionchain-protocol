@@ -11,6 +11,7 @@ use sp_runtime::{
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
+// Configurar un entorno de prueba
 frame_support::construct_runtime!(
 	pub enum Test {
 		System: frame_system,
@@ -45,12 +46,12 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-// AQUÍ ESTÁ EL CAMBIO CLAVE PARA EL MOCK:
+// Implementar la configuración de tu Pallet para el Test
 impl pallet_template::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	// Sin WeightInfo
 }
 
+// Función para iniciar
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }
