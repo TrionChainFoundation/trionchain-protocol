@@ -7,7 +7,7 @@ print("🔌 Connecting to TrionChain (Institutional Node)...")
 try:
     substrate = SubstrateInterface(
         url="ws://127.0.0.1:9944",
-        type_registry_preset='substrate-node-template'
+        
     )
 except ConnectionRefusedError:
     print("❌ Error: Node not running. Please start the Substrate node first.")
@@ -24,7 +24,7 @@ print(f"✅ Connected as: {keypair.ss58_address}")
 print("🔐 Registering Sensor on-chain...")
 
 call_register = substrate.compose_call(
-    call_module='Template',
+    call_module='TrionFEMModule',
     call_function='register_sensor',
     call_params={'cell_id': cell_id, 'sensor_account': keypair.ss58_address}
 )
@@ -53,7 +53,7 @@ try:
 
         # Llamada a la NUEVA función 'report_state' con todos los parámetros
         call = substrate.compose_call(
-            call_module='Template', 
+            call_module='TrionFEMModule',
             call_function='report_state',
             call_params={
                 'cell_id': cell_id,

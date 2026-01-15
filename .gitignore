@@ -1,1 +1,6 @@
-target/
+/target/
+/deps/
+/patches/
+Cargo.lock
+.DS_Store
+.cargo/
