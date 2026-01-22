@@ -1,35 +1,32 @@
 [package]
 name = "pallet-trion-fem"
 version = "0.1.0"
-description = "Trion FEM Pallet"
-authors = { workspace = true }
-edition = { workspace = true }
-license = { workspace = true }
+edition = "2021"
 publish = false
 
 [dependencies]
-frame-support = { workspace = true, default-features = false }
-frame-system  = { workspace = true, default-features = false }
+codec = { package = "parity-scale-codec", version = "3.7.5", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
 
-codec = { workspace = true, default-features = false, features = ["derive"] }
-scale-info = { workspace = true, default-features = false, features = ["derive"] }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
+frame-system  = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
 
-sp-runtime = { workspace = true, default-features = false }
-sp-std = { workspace = true, default-features = false }
+sp-std     = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
 
 [dev-dependencies]
-sp-core = { workspace = true }
-sp-io = { workspace = true }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
+sp-io   = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2512", default-features = false }
 
 [features]
 default = ["std"]
 std = [
+  "codec/std",
+  "scale-info/std",
   "frame-support/std",
   "frame-system/std",
-  "sp-runtime/std",
   "sp-std/std",
+  "sp-runtime/std",
+  "sp-core/std",
+  "sp-io/std",
 ]
-runtime-benchmarks = []
-try-runtime = []
-
-

@@ -1,0 +1,359 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+use sp_std::prelude::*;
+
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+
+use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{ConstBool, ConstU128, ConstU32, ConstU64},
+	weights::Weight,
+};
+use frame_system::EnsureRoot;
+
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H256};
+use sp_runtime::{
+	create_runtime_str,
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, MultiSignature, RuntimeString,
+};
+
+use sp_api::impl_runtime_apis;
+use sp_version::RuntimeVersion;
+
+// --- Runtime Types
+
+pub type BlockNumber = u32;
+pub type Signature = MultiSignature;
+pub type Balance = u128;
+pub type Index = u32;
+
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+
+pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+
+parameter_types! {
+	pub const BlockHashCount: BlockNumber = 2400;
+	pub const Version: RuntimeVersion = VERSION;
+
+	// Tiempo
+	pub const MinimumPeriod: u64 = 3000;
+
+	// Balances
+	pub const ExistentialDeposit: Balance = 1;
+
+	// Aura slot (ms)
+	pub const SlotDuration: u64 = 6000;
+
+	// Trion FEM physics max len
+	pub const MaxPhysicsLen: u32 = 1024;
+}
+
+// --- Runtime Version (IMPORTANTE: system_version en stable2512)
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+	spec_name: create_runtime_str!("trionchain-runtime"),
+	impl_name: create_runtime_str!("trionchain-runtime"),
+	authoring_version: 1,
+	spec_version: 1,
+	impl_version: 1,
+	apis: RUNTIME_API_VERSIONS,
+	transaction_version: 1,
+	system_version: 1,
+};
+
+// --- Opaque types
+
+pub mod opaque {
+	use super::*;
+
+	pub type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
+	pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+	pub type BlockId = sp_runtime::generic::BlockId<Block>;
+}
+
+pub type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+
+pub type SignedExtra = (
+	frame_system::CheckNonZeroSender<Runtime>,
+	frame_system::CheckSpecVersion<Runtime>,
+	frame_system::CheckTxVersion<Runtime>,
+	frame_system::CheckGenesis<Runtime>,
+	frame_system::CheckEra<Runtime>,
+	frame_system::CheckNonce<Runtime>,
+	frame_system::CheckWeight<Runtime>,
+	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+);
+
+pub type UncheckedExtrinsic =
+	sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
+pub type Executive = frame_executive::Executive<
+	Runtime,
+	Block,
+	frame_system::ChainContext<Runtime>,
+	Runtime,
+	AllPalletsWithSystem,
+>;
+
+// --- FRAME System config
+
+impl frame_system::Config for Runtime {
+	type BaseCallFilter = frame_support::traits::Everything;
+	type BlockWeights = ();
+	type BlockLength = ();
+	type RuntimeDbWeight = ();
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type Block = Block;
+	type Hash = H256;
+	type Hashing = BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = AccountIdLookup<AccountId, ()>;
+	type Index = Index;
+	type BlockNumber = BlockNumber;
+	type AccountData = pallet_balances::AccountData<Balance>;
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
+	type SystemWeightInfo = ();
+	type SS58Prefix = ConstU16<42>;
+	type OnSetCode = ();
+	type MaxConsumers = ConstU32<16>;
+	type Nonce = Index;
+	type Version = Version;
+}
+
+// --- Timestamp
+
+impl pallet_timestamp::Config for Runtime {
+	type Moment = u64;
+	type OnTimestampSet = Aura;
+	type MinimumPeriod = MinimumPeriod;
+	type WeightInfo = ();
+}
+
+// --- Balances (IMPORTANTE: NO MaxHolds; SÍ DoneSlashHandler)
+
+impl pallet_balances::Config for Runtime {
+	type Balance = Balance;
+	type RuntimeEvent = RuntimeEvent;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type WeightInfo = ();
+	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ConstU32<50>;
+	type ReserveIdentifier = [u8; 8];
+
+	// ✅ requerido en stable2512
+	type DoneSlashHandler = ();
+}
+
+// --- Sudo
+
+impl pallet_sudo::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+}
+
+// --- Transaction Payment
+
+impl pallet_transaction_payment::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OnChargeTransaction =
+		pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
+
+	// ✅ requerido en stable2512
+	type WeightInfo = pallet_transaction_payment::weights::SubstrateWeight<Runtime>;
+}
+
+// --- Aura
+
+impl pallet_aura::Config for Runtime {
+	type AuthorityId = sp_consensus_aura::sr25519::AuthorityId;
+
+	// ✅ requerido en stable2512
+	type SlotDuration = SlotDuration;
+}
+
+// --- Grandpa
+
+impl pallet_grandpa::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type MaxAuthorities = ConstU32<32>;
+	type MaxSetIdSessionEntries = ConstU64<0>;
+	type KeyOwnerProof = sp_runtime::OpaqueKeyOwnershipProof;
+	type EquivocationReportSystem = ();
+}
+
+// --- Session (mínimo, para Grandpa/Aura setups clásicos si lo necesitas después)
+// Por ahora lo dejamos fuera del construct_runtime para minimizar.
+
+
+// --- Pallet Trion FEM
+
+impl pallet_trion_fem::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxPhysicsLen = MaxPhysicsLen;
+}
+
+// --- Construct Runtime
+
+construct_runtime!(
+	pub enum Runtime
+	where
+		Block = Block,
+		NodeBlock = opaque::Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system,
+		Timestamp: pallet_timestamp,
+		Balances: pallet_balances,
+		TransactionPayment: pallet_transaction_payment,
+		Sudo: pallet_sudo,
+
+		Aura: pallet_aura,
+		Grandpa: pallet_grandpa,
+
+		TrionFem: pallet_trion_fem,
+	}
+);
+
+// --- Runtime APIs (IMPORTANTE: LazyBlock + ExtrinsicInclusionMode)
+
+impl_runtime_apis! {
+	impl sp_api::Core<Block> for Runtime {
+		fn version() -> RuntimeVersion { VERSION }
+
+		fn execute_block(block: <Block as BlockT>::LazyBlock) {
+			Executive::execute_block(block);
+		}
+
+		fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
+			Executive::initialize_block(header)
+		}
+	}
+
+	impl sp_api::Metadata<Block> for Runtime {
+		fn metadata() -> OpaqueMetadata {
+			OpaqueMetadata::new(Runtime::metadata().into())
+		}
+
+		fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+			Runtime::metadata_at_version(version).map(Into::into)
+		}
+
+		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+			Runtime::metadata_versions()
+		}
+	}
+
+	impl sp_block_builder::BlockBuilder<Block> for Runtime {
+		fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
+			Executive::apply_extrinsic(extrinsic)
+		}
+
+		fn finalize_block() -> <Block as BlockT>::Header {
+			Executive::finalize_block()
+		}
+
+		fn inherent_extrinsics(data: sp_inherents::InherentData) -> sp_std::vec::Vec<<Block as BlockT>::Extrinsic> {
+			data.create_extrinsics()
+		}
+
+		fn check_inherents(block: <Block as BlockT>::LazyBlock, data: sp_inherents::InherentData) -> sp_inherents::CheckInherentsResult {
+			data.check_extrinsics(&block)
+		}
+	}
+
+	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
+		fn validate_transaction(source: TransactionSource, tx: <Block as BlockT>::Extrinsic) -> TransactionValidity {
+			Executive::validate_transaction(source, tx)
+		}
+	}
+
+	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
+		fn offchain_worker(header: &<Block as BlockT>::Header) {
+			Executive::offchain_worker(header)
+		}
+	}
+
+	impl sp_consensus_aura::AuraApi<Block, sp_consensus_aura::sr25519::AuthorityId> for Runtime {
+		fn slot_duration() -> sp_consensus_aura::SlotDuration {
+			sp_consensus_aura::SlotDuration::from_millis(SlotDuration::get())
+		}
+
+		fn authorities() -> sp_std::vec::Vec<sp_consensus_aura::sr25519::AuthorityId> {
+			// ✅ en stable2512, usa storage Authorities
+			pallet_aura::Authorities::<Runtime>::get().to_vec()
+		}
+	}
+
+	impl sp_consensus_grandpa::GrandpaApi<Block> for Runtime {
+		fn grandpa_authorities() -> sp_consensus_grandpa::AuthorityList {
+			Grandpa::grandpa_authorities()
+		}
+
+		fn current_set_id() -> sp_consensus_grandpa::SetId {
+			Grandpa::current_set_id()
+		}
+
+		fn submit_report_equivocation_unsigned_extrinsic(
+			_equivocation_proof: sp_consensus_grandpa::EquivocationProof<<Block as BlockT>::Hash, BlockNumber>,
+			_key_owner_proof: sp_consensus_grandpa::OpaqueKeyOwnershipProof
+		) -> Option<()> {
+			None
+		}
+
+		fn generate_key_ownership_proof(
+			_set_id: sp_consensus_grandpa::SetId,
+			_authority_id: sp_consensus_grandpa::AuthorityId
+		) -> Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof> {
+			None
+		}
+	}
+
+	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
+		fn account_nonce(account: AccountId) -> Index {
+			System::account_nonce(account)
+		}
+	}
+
+	impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
+		fn query_info(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
+			TransactionPayment::query_info(uxt, len)
+		}
+
+		fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment::FeeDetails<Balance> {
+			TransactionPayment::query_fee_details(uxt, len)
+		}
+
+		fn weight_to_fee(weight: Weight) -> Balance {
+			TransactionPayment::weight_to_fee(weight)
+		}
+
+		fn length_to_fee(length: u32) -> Balance {
+			TransactionPayment::length_to_fee(length)
+		}
+	}
+
+	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+		fn build_state(_config: Vec<u8>) -> Result<(), RuntimeString> {
+			// Para destrabar, aceptamos config vacío (luego lo implementamos bien)
+			Ok(())
+		}
+
+		fn get_preset(_id: Option<Vec<u8>>) -> Option<Vec<u8>> {
+			// ✅ requiere serde_json para presets más adelante
+			Some(serde_json::to_vec(&RuntimeGenesisConfig::default()).ok()?)
+		}
+
+		fn preset_names() -> Vec<Vec<u8>> {
+			Vec::new()
+		}
+	}
+}
