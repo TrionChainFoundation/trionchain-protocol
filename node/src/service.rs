@@ -1,17 +1,14 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use futures::FutureExt;
-use trionchain_runtime::{self, opaque::Block, RuntimeApi};
-
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_grandpa::SharedVoterState;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-
+use solochain_template_runtime::{self, apis::RuntimeApi, opaque::Block};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-
 use std::{sync::Arc, time::Duration};
 
 pub(crate) type FullClient = sc_service::TFullClient<
@@ -22,7 +19,8 @@ pub(crate) type FullClient = sc_service::TFullClient<
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
-/// The minimum period of blocks on which justifications will be imported and generated.
+/// The minimum period of blocks on which justifications will be
+/// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
 pub type Service = sc_service::PartialComponents<
@@ -30,10 +28,10 @@ pub type Service = sc_service::PartialComponents<
 	FullBackend,
 	FullSelectChain,
 	sc_consensus::DefaultImportQueue<Block>,
-	sc_transaction_pool::FullPool<Block, FullClient>,
+	sc_transaction_pool::TransactionPoolHandle<Block, FullClient>,
 	(
-		Option<sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>>,
-		Option<sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>>,
+		sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+		sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
 		Option<Telemetry>,
 	),
 >;
@@ -50,7 +48,7 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
 		})
 		.transpose()?;
 
-	let executor = sc_service::new_wasm_executor::<sp_io::SubstrateHostFunctions>(config);
+	let executor = sc_service::new_wasm_executor::<sp_io::SubstrateHostFunctions>(&config.executor);
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, _>(
 			config,
@@ -66,76 +64,55 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-	let transaction_pool = sc_transaction_pool::BasicPool::new_full(
-		config.transaction_pool.clone(),
-		config.role.is_authority().into(),
-		config.prometheus_registry(),
-		task_manager.spawn_essential_handle(),
-		client.clone(),
+	let transaction_pool = Arc::from(
+		sc_transaction_pool::Builder::new(
+			task_manager.spawn_essential_handle(),
+			client.clone(),
+			config.role.is_authority().into(),
+		)
+		.with_options(config.transaction_pool.clone())
+		.with_prometheus(config.prometheus_registry())
+		.build(),
 	);
 
-	// ✅ Detect dev chain: in dev we DO NOT init GRANDPA (it panics in aux_schema load_persistent in your SDK).
-	let is_dev_chain = matches!(config.chain_spec.chain_type(), sc_service::ChainType::Development);
+	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
+		client.clone(),
+		GRANDPA_JUSTIFICATION_PERIOD,
+		&client,
+		select_chain.clone(),
+		telemetry.as_ref().map(|x| x.handle()),
+	)?;
 
-	let (maybe_grandpa_block_import, maybe_grandpa_link) = if is_dev_chain {
-		(None, None)
-	} else {
-		let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
-			client.clone(),
-			GRANDPA_JUSTIFICATION_PERIOD,
-			&client,
-			select_chain.clone(),
-			telemetry.as_ref().map(|x| x.handle()),
-		)?;
-		(Some(grandpa_block_import), Some(grandpa_link))
-	};
-
-	let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-
-	// ✅ Aura import queue:
-	// - Normal chains: use grandpa_block_import + justification_import
-	// - Dev chain: use client, no justification_import
-	let import_queue = if let Some(ref grandpa_block_import) = maybe_grandpa_block_import {
+	let cidp_client = client.clone();
+	let import_queue =
 		sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
 			block_import: grandpa_block_import.clone(),
 			justification_import: Some(Box::new(grandpa_block_import.clone())),
 			client: client.clone(),
-			create_inherent_data_providers: move |_, ()| async move {
-				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-				let slot =
-					sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-						*timestamp,
-						slot_duration,
-					);
-				Ok((slot, timestamp))
+			create_inherent_data_providers: move |parent_hash, _| {
+				let cidp_client = cidp_client.clone();
+				async move {
+					let slot_duration = sc_consensus_aura::standalone::slot_duration_at(
+						&*cidp_client,
+						parent_hash,
+					)?;
+					let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+					let slot =
+						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+							*timestamp,
+							slot_duration,
+						);
+
+					Ok((slot, timestamp))
+				}
 			},
 			spawner: &task_manager.spawn_essential_handle(),
 			registry: config.prometheus_registry(),
 			check_for_equivocation: Default::default(),
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
 			compatibility_mode: Default::default(),
-		})?
-	} else {
-		sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
-			block_import: client.clone(),
-			justification_import: None,
-			client: client.clone(),
-			create_inherent_data_providers: move |_, ()| async move {
-				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-				let slot =
-					sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-						*timestamp,
-						slot_duration,
-					);
-				Ok((slot, timestamp))
-			},
-			spawner: &task_manager.spawn_essential_handle(),
-			registry: config.prometheus_registry(),
-			check_for_equivocation: Default::default(),
-			telemetry: telemetry.as_ref().map(|x| x.handle()),
-			compatibility_mode: Default::default(),
-		})?
-	};
+		})?;
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -145,12 +122,16 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (maybe_grandpa_block_import, maybe_grandpa_link, telemetry),
+		other: (grandpa_block_import, grandpa_link, telemetry),
 	})
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full<
+	N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
+>(
+	config: Configuration,
+) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -159,35 +140,36 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (maybe_block_import, maybe_grandpa_link, mut telemetry),
+		other: (block_import, grandpa_link, mut telemetry),
 	} = new_partial(&config)?;
 
-	let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
+	let mut net_config = sc_network::config::FullNetworkConfiguration::<
+		Block,
+		<Block as sp_runtime::traits::Block>::Hash,
+		N,
+	>::new(&config.network, config.prometheus_registry().cloned());
+	let metrics = N::register_notification_metrics(config.prometheus_registry());
 
-	// ✅ Dev chain: disable GRANDPA always (avoid panic in your SDK)
-	let is_dev_chain = matches!(config.chain_spec.chain_type(), sc_service::ChainType::Development);
-	let enable_grandpa = !config.disable_grandpa && !is_dev_chain;
-
-	// Add GRANDPA protocol only if enabled
-	let (grandpa_protocol_name, grandpa_notification_service, grandpa_link) = if enable_grandpa {
-		let grandpa_link = maybe_grandpa_link.expect("GRANDPA enabled => link exists; qed");
-
-		let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
-			&client.block_hash(0).ok().flatten().expect("Genesis exists; qed"),
-			&config.chain_spec,
+	let peer_store_handle = net_config.peer_store_handle();
+	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
+		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
+		&config.chain_spec,
+	);
+	let (grandpa_protocol_config, grandpa_notification_service) =
+		sc_consensus_grandpa::grandpa_peers_set_config::<_, N>(
+			grandpa_protocol_name.clone(),
+			metrics.clone(),
+			peer_store_handle,
 		);
+	net_config.add_notification_protocol(grandpa_protocol_config);
 
-		let (grandpa_protocol_config, grandpa_notification_service) =
-			sc_consensus_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone());
+	let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
+		backend.clone(),
+		grandpa_link.shared_authority_set().clone(),
+		Vec::default(),
+	));
 
-		net_config.add_notification_protocol(grandpa_protocol_config);
-
-		(Some(grandpa_protocol_name), Some(grandpa_notification_service), Some(grandpa_link))
-	} else {
-		(None, None, None)
-	};
-
-	let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
+	let (network, system_rpc_tx, tx_handler_controller, sync_service) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
 			net_config,
@@ -196,49 +178,51 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			spawn_handle: task_manager.spawn_handle(),
 			import_queue,
 			block_announce_validator_builder: None,
-			// ✅ No warp sync (your SDK doesn’t expose sc_network::warp and dev doesn’t need it)
-			warp_sync_params: None,
+			warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
 			block_relay: None,
+			metrics,
 		})?;
 
 	if config.offchain_worker.enabled {
-		task_manager.spawn_handle().spawn(
-			"offchain-workers-runner",
-			"offchain-worker",
+		let offchain_workers =
 			sc_offchain::OffchainWorkers::new(sc_offchain::OffchainWorkerOptions {
 				runtime_api_provider: client.clone(),
 				is_validator: config.role.is_authority(),
 				keystore: Some(keystore_container.keystore()),
 				offchain_db: backend.offchain_storage(),
-				transaction_pool: Some(OffchainTransactionPoolFactory::new(transaction_pool.clone())),
-				network_provider: network.clone(),
+				transaction_pool: Some(OffchainTransactionPoolFactory::new(
+					transaction_pool.clone(),
+				)),
+				network_provider: Arc::new(network.clone()),
 				enable_http_requests: true,
 				custom_extensions: |_| vec![],
-			})
-			.run(client.clone(), task_manager.spawn_handle())
-			.boxed(),
+			})?;
+		task_manager.spawn_handle().spawn(
+			"offchain-workers-runner",
+			"offchain-worker",
+			offchain_workers.run(client.clone(), task_manager.spawn_handle()).boxed(),
 		);
 	}
 
-	let role = config.role.clone();
+	let role = config.role;
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks: Option<()> = None;
 	let name = config.network.node_name.clone();
+	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
 
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 
-		Box::new(move |deny_unsafe, _| {
-			let deps =
-				crate::rpc::FullDeps { client: client.clone(), pool: pool.clone(), deny_unsafe };
+		Box::new(move |_| {
+			let deps = crate::rpc::FullDeps { client: client.clone(), pool: pool.clone() };
 			crate::rpc::create_full(deps).map_err(Into::into)
 		})
 	};
 
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		network: network.clone(),
+		network: Arc::new(network.clone()),
 		client: client.clone(),
 		keystore: keystore_container.keystore(),
 		task_manager: &mut task_manager,
@@ -250,11 +234,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		sync_service: sync_service.clone(),
 		config,
 		telemetry: telemetry.as_mut(),
+		tracing_execute_block: None,
 	})?;
 
-	// ✅ Aura authoring:
-	// - Normal chains: use grandpa block_import
-	// - Dev chain: use client as block_import
 	if role.is_authority() {
 		let proposer_factory = sc_basic_authorship::ProposerFactory::new(
 			task_manager.spawn_handle(),
@@ -266,85 +248,50 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-		if let Some(block_import) = maybe_block_import.clone() {
-			// NORMAL (with GRANDPA block_import)
-			let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
-				StartAuraParams {
-					slot_duration,
-					client: client.clone(),
-					select_chain: select_chain.clone(),
-					block_import,
-					proposer_factory,
-					create_inherent_data_providers: move |_, ()| async move {
-						let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-						let slot =
-							sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-								*timestamp,
-								slot_duration,
-							);
-						Ok((slot, timestamp))
-					},
-					force_authoring,
-					backoff_authoring_blocks,
-					keystore: keystore_container.keystore(),
-					sync_oracle: sync_service.clone(),
-					justification_sync_link: sync_service.clone(),
-					block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
-					max_block_proposal_slot_portion: None,
-					telemetry: telemetry.as_ref().map(|x| x.handle()),
-					compatibility_mode: Default::default(),
-				},
-			)?;
+		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
+			StartAuraParams {
+				slot_duration,
+				client,
+				select_chain,
+				block_import,
+				proposer_factory,
+				create_inherent_data_providers: move |_, ()| async move {
+					let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-			task_manager
-				.spawn_essential_handle()
-				.spawn_blocking("aura", Some("block-authoring"), aura);
-		} else {
-			// DEV (no GRANDPA)
-			let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
-				StartAuraParams {
-					slot_duration,
-					client: client.clone(),
-					select_chain: select_chain.clone(),
-					block_import: client.clone(),
-					proposer_factory,
-					create_inherent_data_providers: move |_, ()| async move {
-						let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-						let slot =
-							sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-								*timestamp,
-								slot_duration,
-							);
-						Ok((slot, timestamp))
-					},
-					force_authoring,
-					backoff_authoring_blocks,
-					keystore: keystore_container.keystore(),
-					sync_oracle: sync_service.clone(),
-					justification_sync_link: sync_service.clone(),
-					block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
-					max_block_proposal_slot_portion: None,
-					telemetry: telemetry.as_ref().map(|x| x.handle()),
-					compatibility_mode: Default::default(),
-				},
-			)?;
+					let slot =
+						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+							*timestamp,
+							slot_duration,
+						);
 
-			task_manager
-				.spawn_essential_handle()
-				.spawn_blocking("aura", Some("block-authoring"), aura);
-		}
+					Ok((slot, timestamp))
+				},
+				force_authoring,
+				backoff_authoring_blocks,
+				keystore: keystore_container.keystore(),
+				sync_oracle: sync_service.clone(),
+				justification_sync_link: sync_service.clone(),
+				block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
+				max_block_proposal_slot_portion: None,
+				telemetry: telemetry.as_ref().map(|x| x.handle()),
+				compatibility_mode: Default::default(),
+			},
+		)?;
+
+		// the AURA authoring task is considered essential, i.e. if it
+		// fails we take down the service with it.
+		task_manager
+			.spawn_essential_handle()
+			.spawn_blocking("aura", Some("block-authoring"), aura);
 	}
 
-	// ✅ Start GRANDPA voter only if enabled (not dev)
 	if enable_grandpa {
-		let grandpa_link = grandpa_link.expect("enable_grandpa => link exists; qed");
-		let grandpa_protocol_name = grandpa_protocol_name.expect("enable_grandpa => set; qed");
-		let grandpa_notification_service =
-			grandpa_notification_service.expect("enable_grandpa => set; qed");
-
+		// if the node isn't actively participating in consensus then it doesn't
+		// need a keystore, regardless of which protocol we use below.
 		let keystore = if role.is_authority() { Some(keystore_container.keystore()) } else { None };
 
 		let grandpa_config = sc_consensus_grandpa::Config {
+			// FIXME #1578 make this available through chainspec
 			gossip_duration: Duration::from_millis(333),
 			justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
 			name: Some(name),
@@ -355,7 +302,13 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			protocol_name: grandpa_protocol_name,
 		};
 
-		let grandpa_params = sc_consensus_grandpa::GrandpaParams {
+		// start the full GRANDPA voter
+		// NOTE: non-authorities could run the GRANDPA observer protocol, but at
+		// this point the full voter should provide better guarantees of block
+		// and vote data availability than the observer. The observer has not
+		// been tested extensively yet and having most nodes in a network run it
+		// could lead to finality stalls.
+		let grandpa_config = sc_consensus_grandpa::GrandpaParams {
 			config: grandpa_config,
 			link: grandpa_link,
 			network,
@@ -368,13 +321,14 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
 		};
 
+		// the GRANDPA voter task is considered infallible, i.e.
+		// if it fails we take down the service with it.
 		task_manager.spawn_essential_handle().spawn_blocking(
 			"grandpa-voter",
 			None,
-			sc_consensus_grandpa::run_grandpa_voter(grandpa_params)?,
+			sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?,
 		);
 	}
 
-	network_starter.start_network();
 	Ok(task_manager)
 }
