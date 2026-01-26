@@ -136,25 +136,27 @@ TrionChain is designed as a **general-purpose physical coordination layer**.
 
 ## 📄 Whitepaper & Technical Docs
 
-- **Technical Whitepaper (Markdown):** `docs/TrionChain_Whitepaper_v2.1.md`
-- **Technical Whitepaper (PDF):** `docs/TrionChain_Whitepaper_v2.1.pdf`
-- **Technical Brief (Markdown):** `docs/TrionChain_Technical_Brief.md`
-- **Technical Brief (PDF):** `docs/TrionChain_Technical_Brief.pdf`
+- **Technical Whitepaper (Markdown):** [`docs/TrionChain_Whitepaper_v2.1.md`](docs/TrionChain_Whitepaper_v2.1.md)
+- **Technical Whitepaper (PDF):** [`docs/TrionChain_Whitepaper_v2.1.pdf`](docs/TrionChain_Whitepaper_v2.1.pdf)
+- **Technical Brief (Markdown):** [`docs/TrionChain_Technical_Brief.md`](docs/TrionChain_Technical_Brief.md)
+- **Technical Brief (PDF):** [`docs/TrionChain_Technical_Brief.pdf`](docs/TrionChain_Technical_Brief.pdf)
 
 ---
 
-## 🚀 Repository Structure
+## 🗂️ Repository Structure
 
+```text
 trionchain-protocol/
-├── node/ # Substrate node & networking
-├── pallets/ # FEM consensus logic
-├── runtime/ # Chain runtime configuration
-├── contracts/ # PhyFi smart contracts
-├── oracles/ # Active oracle interfaces
-├── research/ # FEM & PhyFi research simulations
-├── dashboard/ # Monitoring & visualization UI
-├── docs/ # Whitepaper & technical briefs
-└── scripts/ # Setup & tooling
+├─ node/                 # Substrate node & networking
+├─ runtime/              # Chain runtime configuration
+├─ pallets/              # FEM consensus & protocol logic
+├─ contracts/            # PhyFi smart contracts (WIP/PoC)
+├─ oracles/              # Active oracle interfaces (current runtime-compatible)
+├─ research/             # FEM & PhyFi research simulations (non-production)
+├─ dashboard/            # Monitoring & visualization UI
+├─ scripts/              # Setup, tooling, and automation
+└─ docs/                 # Whitepaper, technical briefs, specifications
+
 
 ---
 
