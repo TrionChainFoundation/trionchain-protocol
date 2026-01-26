@@ -1,2 +1,6 @@
 target/
 oracle/trion_aviation_simulated.py
+
+# build outputs
+/target/
+**/target/
