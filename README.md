@@ -143,22 +143,6 @@ TrionChain is designed as a **general-purpose physical coordination layer**.
 
 ---
 
-## 🗂️ Repository Structure
-
-```text
-trionchain-protocol/
-├─ node/                 # Substrate node & networking
-├─ runtime/              # Chain runtime configuration
-├─ pallets/              # FEM consensus & protocol logic
-├─ contracts/            # PhyFi smart contracts (WIP/PoC)
-├─ oracles/              # Active oracle interfaces (current runtime-compatible)
-├─ research/             # FEM & PhyFi research simulations (non-production)
-├─ dashboard/            # Monitoring & visualization UI
-├─ scripts/              # Setup, tooling, and automation
-└─ docs/                 # Whitepaper, technical briefs, specifications
-
-
----
 
 ## 🧪 DevNet & Demonstration
 
@@ -201,6 +185,24 @@ The TrionChain protocol architecture and FEM-consensus model have been cryptogra
 
 - **Repository:** https://github.com/TrionChainFoundation/trionchain-protocol  
 - **Website:** https://trionchain.org  
-- **Contact:** foundation@trionchain.org  
+- **Contact:** foundation@trionchain.org 
+
+## 🗂️ Repository Structure
+
+```text
+trionchain-protocol/
+├─ node/                 # Substrate node & networking
+├─ runtime/              # Chain runtime configuration
+├─ pallets/              # FEM consensus & protocol logic
+├─ contracts/            # PhyFi smart contracts (WIP/PoC)
+├─ oracles/              # Active oracle interfaces (current runtime-compatible)
+├─ research/             # FEM & PhyFi research simulations (non-production)
+├─ dashboard/            # Monitoring & visualization UI
+├─ scripts/              # Setup, tooling, and automation
+└─ docs/                 # Whitepaper, technical briefs, specifications
+
+
+---
+ 
 
 © 2025 TrionChain Foundation — Licensed under Apache 2.0
