@@ -134,6 +134,15 @@ TrionChain is designed as a **general-purpose physical coordination layer**.
 
 ---
 
+## 📄 Whitepaper & Technical Docs
+
+- **Technical Whitepaper (Markdown):** `docs/TrionChain_Whitepaper_v2.1.md`
+- **Technical Whitepaper (PDF):** `docs/TrionChain_Whitepaper_v2.1.pdf`
+- **Technical Brief (Markdown):** `docs/TrionChain_Technical_Brief.md`
+- **Technical Brief (PDF):** `docs/TrionChain_Technical_Brief.pdf`
+
+---
+
 ## 🚀 Repository Structure
 
 trionchain-protocol/
