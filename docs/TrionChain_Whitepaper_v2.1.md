@@ -1,212 +1,216 @@
 # TrionChain — Technical Whitepaper  
-**Version 2.2 – January 2026**  
-**The Physics-Compliant Layer-1 Infrastructure**
+**Version 2.2 — January 2026**  
+**Physics-Compliant Layer-1 Infrastructure for Real-World Assets**
 
 ---
 
 ## 1. Abstract
 
 Current blockchain architectures are digitally robust but physically blind.  
-They track financial ownership without verifying the physical state of the underlying asset.
+They secure ownership and transactions without validating the physical feasibility of the underlying assets.
 
-TrionChain is the first sovereign Layer-1 blockchain designed to close this gap.  
-By integrating the **Finite Element Method (FEM)** into the consensus mechanism, TrionChain creates a **Physics-Compliant Ledger** where transactions are validated by cryptography and constrained by physical laws (conservation of energy, stress limits, boundary conditions).
+TrionChain is a sovereign Layer-1 blockchain built on **Substrate** that introduces **physical law enforcement at the consensus level**.  
+By integrating the **Finite Element Method (FEM)** into transaction validation, TrionChain ensures that settlements are constrained by real-world physics such as structural limits, energy conservation, and capacity thresholds.
 
-This architecture enables **PhyFi (Physical Finance)**: a new economic paradigm where financial instruments—such as insurance, loans, and settlements—are triggered automatically by validated physical events.
-
----
-
-## 2. Core Architecture
-
-TrionChain utilizes a **dual-layer architecture** to balance computational complexity with immutable security, enabling scalability for industrial and infrastructure-grade systems.
+This architecture enables **PhyFi (Physical Finance)** — an economic paradigm where financial instruments are triggered deterministically by verified physical events rather than subjective claims or post-hoc reconciliation.
 
 ---
 
-### 2.1 Off-Chain Layer: FEM Oracle & Physical Gateway (Python)
+## 2. System Architecture
 
-**Role:** Computation, data fusion, and proposal generation.
+TrionChain follows a **dual-layer architecture** optimized for scalability, determinism, and real-world integration.
 
-**Function:**  
-Edge-computing gateways ingest multi-parametric sensor data (temperature, pressure, voltage, load, vibration), compute a FEM state vector, and cryptographically sign the resulting physical state.
+### 2.1 Off-Chain Layer — FEM Oracle Gateway
 
-**Key Property:**  
-The oracle **does not decide validity**. It only proposes a physically computed state.
+**Role:** Physical computation & data fusion  
+**Function:**
+- Ingests multi-source sensor data (temperature, pressure, voltage, load)
+- Computes FEM state vectors
+- Signs physical state proposals cryptographically
 
-**Technology Stack:**  
-Python, SciPy, NumPy, Substrate Interface, Sr25519 signing.
+**Technology Stack:**
+- Python
+- FEM libraries (SciPy / NumPy)
+- Substrate RPC interface
+- Secure key management
 
----
-
-### 2.2 On-Chain Layer: Physics-Validated Ledger (Rust / Substrate)
-
-**Role:** Validation, enforcement, and settlement.
-
-**Function:**  
-A sovereign Substrate-based blockchain verifies oracle signatures and validates state transitions against **protocol-level physical constraints**.  
-Transactions representing physically impossible states are rejected deterministically.
-
-**Consensus Principle:**  
-Cryptography proves *who* submitted data.  
-Physics determines *whether the data can exist*.
-
-**Technology Stack:**  
-Rust, Polkadot SDK, Substrate FRAME, Sr25519 cryptography.
+> The oracle does **not** determine validity — it proposes a physical state.
 
 ---
 
-### 2.3 Substrate & Ecosystem Strategy
+### 2.2 On-Chain Layer — Physics-Constrained Ledger
 
-TrionChain leverages the **Substrate framework** to remain compatible with the Polkadot ecosystem while operating as a sovereign Layer-1.
+**Role:** Validation & settlement  
+**Function:**
+- Verifies oracle authenticity
+- Enforces FEM constraints
+- Rejects physically impossible state transitions
+- Records validated physical state immutably
 
-This allows TrionChain to:
-- Reuse battle-tested cryptography and networking primitives
-- Maintain protocol sovereignty for FEM-based validation
-- Remain interoperable with broader Web3 infrastructure without sacrificing physical determinism
+**Technology Stack:**
+- Rust
+- Substrate / Polkadot SDK
+- Sr25519 cryptography
 
-TrionChain does not compete with general-purpose blockchains—it **extends them into the physical domain**.
-
----
-
-### 2.4 Why Existing Blockchains Fail at Physical Assets
-
-Traditional blockchains validate transactions using digital signatures and economic rules alone.  
-This is sufficient for purely financial assets but inadequate for physical infrastructure.
-
-Real-world systems are constrained by physics:  
-energy cannot be created, materials have stress limits, and spatial boundaries matter.
-
-Existing RWA platforms rely on legal agreements or trusted intermediaries to enforce these constraints off-chain.  
-Disputes are resolved after failure.
-
-**TrionChain embeds physical constraints directly into protocol validation.**  
-Physically impossible states become **invalid transactions**, not legal disputes.
+Consensus treats **physical impossibility as a first-class failure condition**.
 
 ---
 
 ## 3. Protocol Primitives
 
-### 🧩 TrionCell — The Physical Container
+### 3.1 TrionCell — Static Physical Domain
 
-A **TrionCell** represents a geospatially defined physical domain such as a solar plant, pipeline segment, or city block.
+A TrionCell represents a fixed geospatial or infrastructural domain.
+
+**Examples:**
+- Power plants
+- Pipeline segments
+- Warehouses
+- Urban districts
 
 **Properties:**
 - Location
-- Capacity
-- Structural limits
-- Operational health
+- Capacity limits
+- Structural health
+- Operational constraints
 
-**Function:**  
-Maintains the immutable physical state of its domain.
+Each TrionCell maintains a continuously updated physical state.
 
 ---
 
-### 📦 TrionObject — The Physical Asset
+### 3.2 TrionObject — Dynamic Physical Asset
 
-A **TrionObject** is a dynamic NFT representing movable assets such as containers, vehicles, or energy units.
+A TrionObject represents movable physical assets.
 
-**Properties:**
-- Mass
-- Value
-- Owner
-- Condition
+**Examples:**
+- Containers
+- Vehicles
+- Commodity units
 
-**Physics-Aware Interaction:**  
-When a TrionObject enters a TrionCell, the protocol evaluates the physical impact (load, stress, capacity).  
-If limits are exceeded, the transaction is rejected at the protocol level.
+When a TrionObject interacts with a TrionCell, the protocol evaluates:
+- Load transfer
+- Stress impact
+- Capacity feasibility
 
-**Impact:**  
-Physical impossibility becomes a first-class failure mode in blockchain consensus.
+If constraints are violated, the transaction is rejected before settlement.
 
 ---
 
 ## 4. PhyFi — Physical Finance
 
-PhyFi enables financial instruments to react deterministically to physical reality.
+TrionChain enables **deterministic financial behavior based on physics**.
 
-The goal is **not maximum throughput**, but **minimum physical and settlement risk**.
+### 4.1 Parametric Finance
 
----
+- Insurance payouts triggered by validated physical thresholds
+- No claims processing
+- No subjective arbitration
 
-### 4.1 Financial Immunization
+### 4.2 Dynamic Risk Pricing
 
-By coupling FEM validation with smart contracts, TrionChain enables:
+- Infrastructure-backed loans adjust rates based on operational efficiency
+- Physical degradation directly impacts financial terms
 
-- **Parametric Insurance:**  
-  Automatic payouts triggered by validated physical thresholds (e.g., seismic stress, temperature extremes).
-- **Dynamic Risk Pricing:**  
-  Loans and yields adjust in real-time based on verified operational performance.
-- **Elimination of Claims Processing:**  
-  Physical truth is settled on-chain.
+PhyFi minimizes settlement risk by coupling finance to reality.
 
 ---
 
-## 5. Universal Use Cases
+## 5. Economic & Token Model
+
+TrionChain is **not a speculative token platform**.  
+Economic mechanisms exist to **secure, govern, and sustain physical correctness**.
+
+### Role of DOT / Polkadot-native Assets
+
+- **Transaction Fees:**  
+  All state updates and settlements consume DOT.
+
+- **Validator & Oracle Bonding:**  
+  Validators and authorized oracles stake DOT to participate in consensus and data submission.
+
+- **Governance:**  
+  Physical rules, FEM parameters, and protocol upgrades are governed on-chain via DOT-based governance.
+
+- **Persistent Demand:**  
+  Continuous physical operations (energy flow, logistics, infrastructure monitoring) generate non-cyclical demand for blockspace.
+
+> Real-world infrastructure produces sustained economic activity independent of market speculation.
+
+---
+
+## 6. Use Case Coverage
 
 TrionChain is asset-agnostic and domain-independent.
 
----
+### ⚡ Energy & Infrastructure
+- Grid balancing
+- Cross-border energy settlement
+- Reserve auditing
 
-### ⚡ Energy & Hydrocarbons  
-**Application:** Grid interconnection, reserve auditing, cross-border settlement.  
-**Impact:** Automated reconciliation of energy flows and sovereign reserve validation.
+### 🌾 Agriculture & Commodities
+- Parametric crop insurance
+- Climate-risk finance
+- Provenance verification
 
----
+### 🏢 Real Estate & Smart Cities
+- Programmable buildings
+- ESG-compliant reporting
+- Autonomous municipal operations
 
-### 🌾 Agriculture & Commodities  
-**Application:** Parametric crop insurance, provenance tracking.  
-**Impact:** Climate-responsive finance with zero manual verification.
-
----
-
-### 🏢 Real Estate & Smart Cities  
-**Application:** Programmable buildings, dynamic REITs, ESG compliance.  
-**Impact:** Infrastructure becomes a self-settling financial entity.
-
----
-
-### 🚚 Logistics & Supply Chain  
-**Application:** Cold-chain custody, autonomous transit.  
-**Impact:** Instant liability resolution and insurance settlement.
+### 🚚 Logistics & Supply Chain
+- Cold-chain custody
+- Damage attribution
+- Automated liability settlement
 
 ---
 
-## 6. Technical Roadmap
+## 7. Development Roadmap
 
-### Phase 1 — Completed
-- Core Substrate-based Layer-1
-- FEM-validated consensus logic
-- Python oracle & simulation framework
+**Phase 1 — Completed**
+- Core protocol
+- FEM validation logic
+- Oracle integration
+- Simulation framework
 
-### Phase 2 — Current
-- Public DevNet deployment
-- Reference oracle implementations
-- Grant-funded documentation and audits
-- Institutional pilot integrations
-- Legal framework alignment (ADGM / similar)
+**Phase 2 — Current**
+- DevNet deployment
+- Institutional pilots
+- Regulatory framework alignment
 
-### Phase 3 — 2026
+**Phase 3 — 2026**
 - Mainnet launch
-- Hardware sensor & satellite integration
+- IoT & satellite integration
 - PhyFi marketplace
-- Cross-chain settlement interfaces
 
 ---
 
-## 7. Intellectual Property Record
+## 8. Intellectual Property & Priority
 
-The TrionChain architecture, FEM-consensus logic, and TrionCell methodology have been cryptographically timestamped to establish priority of invention.
+The TrionChain architecture, FEM-consensus logic, and TrionCell model have been cryptographically timestamped on the Bitcoin blockchain.
 
-**Network:** Bitcoin Mainnet  
-**Transaction ID:** `0cc839da0b99889fdd3924555e36ec21cb91d8d8cab04a6993779469123909d4`  
-**Block Height:** #923,515  
-**Timestamp:** November 14, 2025 (UTC)
+- **Network:** Bitcoin Mainnet  
+- **TxID:** 0cc839da0b99889fdd3924555e36ec21cb91d8d8cab04a6993779469123909d4  
+- **Block:** #923,515  
+- **Date:** November 14, 2025 (UTC)
+
+This establishes immutable proof of existence.
 
 ---
 
-## TrionChain Foundation
+## 9. Governance & Sustainability
 
-**Repository:** https://github.com/TrionChainFoundation/trionchain-protocol  
-**Website:** https://trionchain.org  
-**Contact:** foundation@trionchain.org  
+TrionChain is developed under the TrionChain Foundation with a long-term sustainability model focused on:
+- Open governance
+- Infrastructure-first economics
+- Regulatory awareness
+- Institutional-grade reliability
+
+---
+
+## 10. TrionChain Foundation
+
+- **Repository:** https://github.com/TrionChainFoundation/trionchain-protocol  
+- **Website:** https://trionchain.org  
+- **Contact:** foundation@trionchain.org  
 
 © 2026 TrionChain Foundation — Licensed under Apache 2.0
