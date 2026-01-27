@@ -108,7 +108,7 @@ LinkedIn: https://www.linkedin.com/in/jorge-pumar-320a4647
 ### Overview
 - Duration: 2 months
 - FTE: 1
-- Requested Funding: USD 30,000
+- Requested Funding: USDT (eq DOT) 50,000 - 70,000
 
 ---
 
