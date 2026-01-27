@@ -7,6 +7,43 @@ By integrating **Finite Element Method (FEM)** logic directly into the consensus
 
 This enables **PhyFi (Physical Finance)** — a new class of financial primitives where settlements, insurance, and infrastructure finance are triggered deterministically by verified physical events.
 
+## 🧪 DevNet & Demonstration
+
+### ✅ Live DevNet Status (Reproducible)
+
+A fully operational TrionChain DevNet is running with:
+
+- Active block production (~6s block time)
+- Custom FEM pallet (`trion-fem`) loaded in runtime
+- Root-governed cell ownership
+- Physics-constrained state updates via extrinsics
+- On-chain events emitted and indexed
+
+#### Demonstrated on-chain actions:
+- `trionFem.setCellOwner` (Root / sudo)
+- `trionFem.updateCell` (physics state update)
+- Verified event emission (`CellOwnerSet`, `CellUpdated`)
+
+See the reproducible demo walkthrough:
+👉 [`docs/demo/devnet-demo.md`](docs/demo/devnet-demo.md)
+
+#### DevNet Evidence (Screenshots)
+
+<p align="center">
+  <img src="docs/demo/images/01-network-chain-info.png" width="800"/>
+</p>
+<p align="center"><i>TrionChain DevNet producing blocks with finalized state</i></p>
+
+<p align="center">
+  <img src="docs/demo/images/02-trionfem-extrinsics.png" width="800"/>
+</p>
+<p align="center"><i>trionFem extrinsics available in Polkadot.js UI</i></p>
+
+<p align="center">
+  <img src="docs/demo/images/03-trionfem-sudo.png" width="800"/>
+</p>
+<p align="center"><i>Root-governed FEM cell ownership via sudo</i></p>
+
 ---
 
 ## 🧠 Core Concept
@@ -143,16 +180,21 @@ TrionChain is designed as a **general-purpose physical coordination layer**.
 
 ---
 
+## 🔎 Project Maturity Clarification
 
-## 🧪 DevNet & Demonstration
+TrionChain is not a concept-only proposal.
 
-A TrionChain DevNet is available to demonstrate:
+- The protocol compiles and runs as a sovereign Substrate chain
+- Custom FEM logic is enforced at runtime level
+- Oracle input is constrained, not trusted blindly
+- Demonstrations are reproducible by third parties
 
-- Live block production
-- Physics-constrained validation
-- Oracle-to-chain data flow
+Current limitations are explicitly scoped to:
+- Scale (single-cell / small mesh)
+- Sensor density
+- Oracle diversity
 
-Instructions and demo material are provided in the repository.
+These are engineering scale-up challenges, not architectural unknowns.
 
 ---
 
