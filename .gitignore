@@ -1,6 +1,15 @@
+ HEAD
 target/
 oracle/trion_aviation_simulated.py
 
 # build outputs
 /target/
 **/target/
+
+/target/
+/deps/
+/patches/
+Cargo.lock
+.DS_Store
+.cargo/
+feat/trion-fem-runtime

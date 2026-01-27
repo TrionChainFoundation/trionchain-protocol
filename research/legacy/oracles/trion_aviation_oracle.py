@@ -20,7 +20,7 @@ CO2_FACTOR = 2.5
 
 print("✈️ INICIALIZANDO TRIONCHAIN AVIATION LINK...")
 try:
-    substrate = SubstrateInterface(url="ws://127.0.0.1:9944", type_registry_preset='substrate-node-template')
+    substrate = SubstrateInterface(url="ws://127.0.0.1:9944")
 except:
     print("❌ Error: Nodo no encontrado.")
     exit()
@@ -82,7 +82,7 @@ try:
             # Registro previo (Alice registra la celda al nombre del avión)
             # Nota: Hacemos que Alice registre la celda para que el avión sea el dueño autorizado
             call_reg = substrate.compose_call(
-                call_module='Template',
+                call_module='TrionFEMModule',
                 call_function='register_sensor',
                 call_params={'cell_id': sector["id"], 'sensor_account': plane_keypair.ss58_address}
             )
@@ -92,7 +92,7 @@ try:
 
             # Reporte de datos (El avión paga esto con sus nuevos fondos)
             call_report = substrate.compose_call(
-                call_module='Template',
+                call_module='TrionFEMModule',
                 call_function='report_state',
                 call_params={
                     'cell_id': sector["id"],
